@@ -1,15 +1,14 @@
+import asyncio
 from datetime import timedelta
-from typing import Literal, Optional, List
+from typing import List, Literal, Optional
 
-from chromadb.api.models.Collection import Document as ChromaDocument
 from prefect import flow, task
 from prefect.tasks import task_input_hash
-
 from raggy.documents import Document
 from raggy.loaders.base import Loader
 from raggy.loaders.github import GitHubRepoLoader
 from raggy.loaders.web import SitemapLoader
-from raggy.vectorstores.chroma import Chroma, ChromaClientType
+from raggy.vectorstores.tpuf import TurboPuffer
 
 
 @task(
@@ -24,23 +23,31 @@ async def run_loader(loader: Loader) -> List[Document]:
     return await loader.load()
 
 
-@task
-def add_documents(
-    chroma: Chroma, documents: list[Document], mode: Literal["upsert", "reset"]
-) -> list[ChromaDocument]:
+@task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))
+async def add_documents(
+    tpuf: TurboPuffer,
+    documents: list[Document],
+    mode: Literal["upsert", "reset"],
+    batch_size: int = 100,
+    max_concurrent: int = 8,
+) -> None:
+    """Add documents to TurboPuffer with batching support"""
     if mode == "reset":
-        chroma.reset_collection()
-        docs = chroma.add(documents)
-    elif mode == "upsert":
-        docs = chroma.upsert(documents)
-    return docs
+        # TurboPuffer doesn't have a direct reset, but we can create a new namespace
+        await tpuf.delete_namespace()
+        await tpuf.upsert_batched(
+            documents=documents, batch_size=batch_size, max_concurrent=max_concurrent
+        )
+    else:
+        await tpuf.upsert_batched(
+            documents=documents, batch_size=batch_size, max_concurrent=max_concurrent
+        )
 
 
 @flow(name="Update Knowledge", log_prints=True)
-def refresh_chroma(
+async def refresh_tpuf(
     # Vectorstore params
-    collection_name: str = "default",
-    chroma_client_type: ChromaClientType = "base",
+    namespace: str = "default",
     mode: Literal["upsert", "reset"] = "upsert",
     # Optional sitemap params
     sitemap_urls: Optional[List[str]] = None,
@@ -48,9 +55,12 @@ def refresh_chroma(
     # Optional GitHub params
     github_repo: Optional[str] = None,
     github_include_globs: Optional[List[str]] = None,
+    # Batch processing params
+    batch_size: int = 100,
+    max_concurrent: int = 8,
 ):
     """
-    Flow updating the vectorstore with documents from one or more data sources:
+    Flow updating the TurboPuffer vectorstore with documents from one or more data sources:
      - Zero or more sitemaps (SitemapLoader)
      - Optionally a GitHub repo (GitHubRepoLoader)
     """
@@ -88,25 +98,33 @@ def refresh_chroma(
 
     print(f"Loaded {len(documents)} documents from specified sources.")
 
-    with Chroma(
-        collection_name=collection_name, client_type=chroma_client_type
-    ) as chroma:
-        docs = add_documents(chroma, documents, mode)
-
-        print(f"Added {len(docs)} documents to the {collection_name} collection.")  # type: ignore
+    with TurboPuffer(namespace=namespace) as tpuf:
+        await add_documents(
+            tpuf=tpuf,
+            documents=documents,
+            mode=mode,
+            batch_size=batch_size,
+            max_concurrent=max_concurrent,
+        )
+        print(f"Added {len(documents)} documents to the {namespace} namespace.")
 
 
 if __name__ == "__main__":
     # Example usage with Prefect data
-    refresh_chroma(
-        collection_name="test",
-        chroma_client_type="base",
-        mode="reset",
-        sitemap_urls=[
-            "https://docs.prefect.io/sitemap.xml",
-            "https://prefect.io/sitemap.xml",
-        ],
-        sitemap_exclude=["api-ref", "www.prefect.io/events"],
-        github_repo="PrefectHQ/prefect",
-        github_include_globs=["README.md"],
+    asyncio.run(
+        refresh_tpuf(
+            namespace="test-tay",
+            mode="upsert",
+            sitemap_urls=[
+                "https://docs.prefect.io/sitemap.xml",
+                "https://prefect.io/sitemap.xml",
+            ],
+            sitemap_exclude=["api-ref", "www.prefect.io/events"],
+            github_repo="PrefectHQ/prefect",
+            github_include_globs=["README.md"],
+        )
     )
+
+# reset is for testing
+# upsert is for production
+# upsert is for production
