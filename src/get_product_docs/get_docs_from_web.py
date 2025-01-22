@@ -113,11 +113,10 @@ if __name__ == "__main__":
     # Example usage with Prefect data
     asyncio.run(
         refresh_tpuf(
-            namespace="test-tay",
+            namespace="tay-prefect-docs",
             mode="upsert",
             sitemap_urls=[
                 "https://docs.prefect.io/sitemap.xml",
-                "https://prefect.io/sitemap.xml",
             ],
             sitemap_exclude=["api-ref", "www.prefect.io/events"],
             github_repo="PrefectHQ/prefect",
@@ -125,6 +124,4 @@ if __name__ == "__main__":
         )
     )
 
-# reset is for testing
-# upsert is for production
-# upsert is for production
+
