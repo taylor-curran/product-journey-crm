@@ -33,11 +33,7 @@ async def add_documents(
 ) -> None:
     """Add documents to TurboPuffer with batching support"""
     if mode == "reset":
-        # TurboPuffer doesn't have a direct reset, but we can create a new namespace
-        await tpuf.delete_namespace()
-        await tpuf.upsert_batched(
-            documents=documents, batch_size=batch_size, max_concurrent=max_concurrent
-        )
+        raise NotImplementedError("Reset mode is not implemented")
     else:
         await tpuf.upsert_batched(
             documents=documents, batch_size=batch_size, max_concurrent=max_concurrent
@@ -123,5 +119,3 @@ if __name__ == "__main__":
             github_include_globs=["README.md"],
         )
     )
-
-
