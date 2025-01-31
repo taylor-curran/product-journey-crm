@@ -1,11 +1,8 @@
-from prefect import task, flow
 from google.cloud import bigquery
 from dotenv import load_dotenv
 import os
 from queries import transcript_query
 
-
-@flow
 def refresh_gong_transcripts(limit: int = 100):
     """
     Get the transcript data from Gong
