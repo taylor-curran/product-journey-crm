@@ -169,3 +169,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+**.sql
+src/get_gong_data/queries.py
+notes.txt
