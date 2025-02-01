@@ -26,7 +26,9 @@ def fetch_transcripts_from_bigquery(limit):
     return rows
 
 
-def process_and_embed_transcripts(rows: List[Dict]) -> Dict:
+def process_and_embed_transcripts(
+    rows: List[Dict], chunk_size: int = 2000, overlap: int = 200
+) -> Dict:
     """
     Processes each row to embed the combined_transcript and prepares data for upsert.
     """
@@ -52,21 +54,23 @@ def process_and_embed_transcripts(rows: List[Dict]) -> Dict:
         )
 
         # Chunk the transcript text.
-        # chunks = chunk_text(entire_transcript_text, chunk_size=2000, overlap=200)
+        chunks = chunk_text(
+            entire_transcript_text, chunk_size=chunk_size, overlap=overlap
+        )
 
-        # # Process each chunk.
-        # for idx, chunk in enumerate(chunks):
-        #     if not chunk.strip():
-        #         continue
-
-        # Embed the transcript
-        vector = embed_text(entire_transcript_text)
-        if not vector:
-            print(f"Embedding failed for call {call_title}-{call_id}.")
-            continue
+        # Process each chunk.
+        for idx, chunk in enumerate(chunks):
+            if not chunk.strip():
+                continue
+            # Create a stable chunk ID: original call_id plus a chunk index.
+            chunk_id = f"{call_id}-{idx}"
+            vector = embed_text(chunk)
+            if not vector:
+                print(f"Embedding failed for call {call_title}-{call_id} chunk {idx}.")
+                continue
 
         # Append the call_id and vector to the lists
-        doc_ids.append(call_id)
+        doc_ids.append(chunk_id)
         doc_vectors.append(vector)
 
         # Clean attributes for this row to meet tpuf attribute dtype requirements
@@ -74,6 +78,10 @@ def process_and_embed_transcripts(rows: List[Dict]) -> Dict:
         # And append attributes
         for attr_key, value in cleaned_attrs.items():
             upsert_attributes[attr_key].append(value)
+
+        if "chunk_index" not in upsert_attributes:
+            upsert_attributes["chunk_index"] = []
+        upsert_attributes["chunk_index"].append(f"{idx} of {len(chunks)}")
 
     return {
         "doc_ids": doc_ids,
@@ -95,7 +103,10 @@ def upsert_to_tpuf(
 
 
 def refresh_gong_transcripts(
-    limit: int = 100, chunk_size: int = 2000, namespace: str = "tay-test"
+    limit: int = 100,
+    namespace: str = "tay-test",
+    chunk_size: int = 2000,
+    overlap: int = 200,
 ):
     """
     Get the transcript data from Gong
