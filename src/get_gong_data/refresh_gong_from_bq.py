@@ -85,18 +85,20 @@ def process_and_embed_transcripts(rows: List[Dict]) -> Dict:
             continue
 
         # Create a unique document id.
-        doc_id = f"{call_title}-{call_id}-{uuid.uuid4()}" # TODO: Why do I need to append a UUID here? Will that prevent upsertion?
+        doc_id = call_id
         doc_ids.append(doc_id)
         doc_vectors.append(vector)
 
-        # Populate attributes
-        for attr_key in attributes.keys():
-            attributes[attr_key].append(row.get(attr_key, ""))
+        # Clean attributes for this row.
+        cleaned_attrs = clean_attributes_for_row(row, list(upsert_attributes.keys()))
+        # Append each cleaned value into the column-oriented attributes dict.
+        for attr_key, value in cleaned_attrs.items():
+            upsert_attributes[attr_key].append(value)
 
     return {
         "doc_ids": doc_ids,
         "doc_vectors": doc_vectors,
-        "attributes": attributes,
+        "attributes": upsert_attributes,
     }
 
 
@@ -109,7 +111,6 @@ def upsert_to_tpuf(
     tpuf.api_base_url = "https://gcp-us-central1.turbopuffer.com"
     ns = tpuf.Namespace(namespace)
 
-    ns = tpuf.Namespace(namespace)
     ns.upsert(ids=doc_ids, vectors=doc_vectors, attributes=attributes)
 
 
@@ -121,7 +122,7 @@ def refresh_gong_transcripts(
     """
     rows = fetch_transcripts_from_bigquery(limit)
     vector_and_attributes = process_and_embed_transcripts(rows)
-    # upsert_to_tpuf(namespace, **vector_and_attributes)
+    upsert_to_tpuf(namespace, **vector_and_attributes)
 
 
 if __name__ == "__main__":
