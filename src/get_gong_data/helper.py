@@ -112,30 +112,6 @@ def clean_attributes_for_row(
     return cleaned
 
 
-attributes = {
-    "salesforce_record_id": [],
-    "name": [],
-    "gong_call_duration_sec_c": [],
-    "gong_call_start_c": [],
-    "gong_participants_emails_c": [],
-    "gong_related_participants_json_c": [],
-    "gong_primary_account_c": [],
-    "gong_primary_opportunity_c": [],
-    "gong_related_contacts_json_c": [],
-    "gong_related_leads_json_c": [],
-    "gong_related_opportunities_json_c": [],
-    "gong_opp_close_date_time_of_call_c": [],
-    "gong_opp_probability_time_of_call_c": [],
-    "gong_opp_stage_time_of_call_c": [],
-    "gong_title_c": [],
-    "gong_scheduled_c": [],
-    "gong_is_private_c": [],
-    "gong_call_brief_c": [],
-    "gong_call_highlights_next_steps_c": [],
-    "gong_call_key_points_c": [],
-    "gong_scope_c": [],
-}
-
 # test
 
 # def openai_or_rand_vector(text: str) -> list[float]:

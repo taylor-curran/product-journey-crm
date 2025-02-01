@@ -2,11 +2,10 @@
 from google.cloud import bigquery
 from dotenv import load_dotenv
 import os
-from queries import transcript_query
+from queries import transcript_query, attributes
 from helper import (
     chunk_text,
     embed_text,
-    attributes,
     clean_attribute_value,
     clean_attributes_for_row,
 )
