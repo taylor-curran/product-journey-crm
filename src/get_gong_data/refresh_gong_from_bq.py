@@ -49,7 +49,9 @@ def process_and_embed_transcripts(rows: List[Dict]) -> Dict:
 
         try:
             transcript_list = json.loads(combined_transcript)
-            entire_transcript_text = " ".join(item.get("text", "") for item in transcript_list)
+            entire_transcript_text = " ".join(
+                item.get("text", "") for item in transcript_list
+            )
         except json.JSONDecodeError as e:
             print(
                 f"Error parsing combined_transcript for call {call_title}-{call_id}: {e}"
