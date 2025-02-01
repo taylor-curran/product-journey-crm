@@ -8,14 +8,6 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 
-def chunk_text(s: str, chunk_size: int = 2000) -> List[str]:
-    """
-    Splits a large string into smaller chunks of specified size.
-    Adjust chunk_size based on OpenAI's token limits and your requirements.
-    """
-    return [s[i : i + chunk_size] for i in range(0, len(s), chunk_size)]
-
-
 def embed_text(text: str) -> List[float]:
     """
     Generates an embedding vector for the provided text using OpenAI's API.
@@ -138,6 +130,25 @@ def process_combined_transcript(
         return ""
 
     return entire_transcript_text
+
+
+def chunk_text(text: str, chunk_size: int = 2000, overlap: int = 200) -> List[str]:
+    """
+    Splits the given text into chunks of a maximum of `chunk_size` words,
+    with an overlap of `overlap` words between chunks.
+    """
+    words = (
+        text.split()
+    )  # This splits on whitespace; you could also use a sentence splitter.
+    chunks = []
+    start = 0
+    while start < len(words):
+        end = start + chunk_size
+        chunk = " ".join(words[start:end])
+        chunks.append(chunk)
+        # Move the start index forward by chunk_size minus the overlap.
+        start += chunk_size - overlap
+    return chunks
 
 
 # test

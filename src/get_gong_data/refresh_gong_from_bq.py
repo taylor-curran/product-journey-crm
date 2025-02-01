@@ -5,7 +5,12 @@ from typing import Dict, List
 import turbopuffer as tpuf
 from dotenv import load_dotenv
 from google.cloud import bigquery
-from helper import clean_attributes_for_row, embed_text, process_combined_transcript
+from helper import (
+    clean_attributes_for_row,
+    embed_text,
+    process_combined_transcript,
+    chunk_text,
+)
 from queries import attributes, transcript_query
 
 
@@ -33,18 +38,26 @@ def process_and_embed_transcripts(rows: List[Dict]) -> Dict:
         call_id = row.get("gong_call_id_c")
         call_title = row.get("name")
 
-        # Process transcript using the new helper function
-        combined_transcript = row.get("combined_transcript", "")
-        entire_transcript_text = process_combined_transcript(
-            combined_transcript, call_title, call_id
-        )
-
         # Skip if call duration is less than 10 seconds
         if row.get("gong_call_duration_sec_c") < 10:
             print(
                 f"Skipping call {call_title}-{call_id} with call duration less than 10 seconds."
             )
             continue
+
+        # Process transcript using the new helper function
+        combined_transcript = row.get("combined_transcript", "")
+        entire_transcript_text = process_combined_transcript(
+            combined_transcript, call_title, call_id
+        )
+
+        # Chunk the transcript text.
+        # chunks = chunk_text(entire_transcript_text, chunk_size=2000, overlap=200)
+
+        # # Process each chunk.
+        # for idx, chunk in enumerate(chunks):
+        #     if not chunk.strip():
+        #         continue
 
         # Embed the transcript
         vector = embed_text(entire_transcript_text)
@@ -72,7 +85,7 @@ def process_and_embed_transcripts(rows: List[Dict]) -> Dict:
 def upsert_to_tpuf(
     namespace: str, doc_ids: List[str], doc_vectors: List[List[float]], attributes: Dict
 ):
-    load_dotenv() # Ask nate -- do i need this everywhere
+    load_dotenv()  # TODO: Ask nate -- do i need this everywhere
 
     tpuf.api_key = os.getenv("TURBOPUFFER_API_KEY")
     tpuf.api_base_url = "https://gcp-us-central1.turbopuffer.com"

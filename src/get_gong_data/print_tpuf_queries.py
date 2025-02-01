@@ -62,13 +62,13 @@ def print_namespace_schema(namespace: str = "tay-test"):
 
 
 if __name__ == "__main__":
-    # schema = print_namespace_schema("tay-test")
+    schema = print_namespace_schema("tay-test")
 
     results = query_namespace(
         "tay-test",
         "Find me a call where migration and upgrade were discussed.",
         top_k=1,
-        include_attributes=["gong_title_c"],
+        include_attributes=["gong_title_c", "gong_call_id_c"],
     )
 
 
