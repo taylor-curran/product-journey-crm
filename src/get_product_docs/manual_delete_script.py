@@ -15,4 +15,4 @@ def delete_namespace(namespace: str):
 
 if __name__ == "__main__":
     # Delete the test-tay namespace
-    delete_namespace("test-tay2")
+    delete_namespace("tay-test")
