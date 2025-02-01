@@ -8,6 +8,7 @@ def query_namespace(
     query_text: str = "find me a call where data orchestration was discussed",
     top_k: int = 3,
     include_attributes: list[str] = ["name", "gong_call_id_c"],
+    n_characters: int = 500,
 ) -> list:
     # Convert query into a vector
     query_vector = embed_text(query_text)
@@ -25,13 +26,32 @@ def query_namespace(
         include_attributes=include_attributes,
     )
 
+    if n_characters > len(results[0].attributes["transcript_text"]):
+        n_characters = len(results[0].attributes["transcript_text"])
+
     for result in results:
         print("\nResult:")
         print(f"  ID: {result.id}")
         print(f"  Distance: {result.dist:.4f}")
         print("  Attributes:")
         for attr, value in result.attributes.items():
-            print(f"    {attr}: {value}")
+            if attr == "transcript_text":
+                print('')
+                print('-----')
+                print(f"Transcript Text ({n_characters} characters):")
+                print('')
+                print(f"{value[:n_characters]}...")
+
+                print('') 
+                print('Last 400 characters:')
+                print('')
+                print(f"{value[-400:]}")
+                print('')
+                print(f"Chunk Length: {len(value)}")
+                print('-----')
+                print('')
+            else:
+                print(f"    {attr}: {value}")
 
     return results
 
@@ -62,13 +82,14 @@ def print_namespace_schema(namespace: str = "tay-test"):
 
 
 if __name__ == "__main__":
-    schema = print_namespace_schema("tay-test")
+    # schema = print_namespace_schema("tay-test")
 
     results = query_namespace(
         "tay-test",
         "Find me a call where migration and upgrade were discussed.",
         top_k=1,
-        include_attributes=["gong_title_c", "gong_call_id_c"],
+        include_attributes=["gong_title_c", "gong_call_id_c", "chunk_index", "transcript_text"],
+        n_characters=2000,
     )
 
 

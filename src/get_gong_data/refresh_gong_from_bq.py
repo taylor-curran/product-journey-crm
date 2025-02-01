@@ -30,11 +30,15 @@ def process_and_embed_transcripts(
     rows: List[Dict], chunk_size: int = 2000, overlap: int = 200
 ) -> Dict:
     """
-    Processes each row to embed the combined_transcript and prepares data for upsert.
+    Processes each row to embed the combined_transcript (chunked) and prepares data for upsert.
     """
     doc_ids: List[str] = []
     doc_vectors: List[List[float]] = []
+    # Start with the original attribute keys; note that "chunk_index" is not in attributes.
     upsert_attributes = {key: [] for key in attributes.keys()}
+    # Initialize a new key for the chunk index.
+    upsert_attributes["chunk_index"] = []
+    upsert_attributes["transcript_text"] = []
 
     for row in rows:
         call_id = row.get("gong_call_id_c")
@@ -42,21 +46,18 @@ def process_and_embed_transcripts(
 
         # Skip if call duration is less than 10 seconds
         if row.get("gong_call_duration_sec_c") < 10:
-            print(
-                f"Skipping call {call_title}-{call_id} with call duration less than 10 seconds."
-            )
+            print(f"Skipping call {call_title}-{call_id} with duration less than 10 sec.")
             continue
 
-        # Process transcript using the new helper function
+        # Process transcript using the helper function
         combined_transcript = row.get("combined_transcript", "")
-        entire_transcript_text = process_combined_transcript(
-            combined_transcript, call_title, call_id
-        )
+        entire_transcript_text = process_combined_transcript(combined_transcript, call_title, call_id)
 
         # Chunk the transcript text.
-        chunks = chunk_text(
-            entire_transcript_text, chunk_size=chunk_size, overlap=overlap
-        )
+        chunks = chunk_text(entire_transcript_text, chunk_size=chunk_size, overlap=overlap)
+
+        # Compute the cleaned attributes once per row (they’re the same for every chunk)
+        cleaned_attrs = clean_attributes_for_row(row, list(attributes.keys()))
 
         # Process each chunk.
         for idx, chunk in enumerate(chunks):
@@ -69,19 +70,13 @@ def process_and_embed_transcripts(
                 print(f"Embedding failed for call {call_title}-{call_id} chunk {idx}.")
                 continue
 
-        # Append the call_id and vector to the lists
-        doc_ids.append(chunk_id)
-        doc_vectors.append(vector)
-
-        # Clean attributes for this row to meet tpuf attribute dtype requirements
-        cleaned_attrs = clean_attributes_for_row(row, list(upsert_attributes.keys()))
-        # And append attributes
-        for attr_key, value in cleaned_attrs.items():
-            upsert_attributes[attr_key].append(value)
-
-        if "chunk_index" not in upsert_attributes:
-            upsert_attributes["chunk_index"] = []
-        upsert_attributes["chunk_index"].append(f"{idx} of {len(chunks)}")
+            # Append each chunk's data.
+            doc_ids.append(chunk_id)
+            doc_vectors.append(vector)
+            for attr_key, value in cleaned_attrs.items():
+                upsert_attributes[attr_key].append(value)
+            upsert_attributes["chunk_index"].append(f"-{idx}- of {len(chunks)}")
+            upsert_attributes["transcript_text"].append(chunk)
 
     return {
         "doc_ids": doc_ids,
