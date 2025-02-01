@@ -150,4 +150,3 @@ def refresh_gong_transcripts(
 if __name__ == "__main__":
     # refresh_gong_transcripts(namespace="tay-sales-calls", limit_n_calls=0)
     refresh_gong_transcripts(namespace="tay-test", limit_n_calls=20)
-
