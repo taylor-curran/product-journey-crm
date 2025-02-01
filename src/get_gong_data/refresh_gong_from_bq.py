@@ -12,20 +12,27 @@ from helper import (
     chunk_text,
 )
 from queries import attributes, transcript_query
+from prefect import task, flow
+from prefect.cache_policies import TASK_SOURCE, INPUTS
 
 
-def fetch_transcripts_from_bigquery(limit_n_calls: int):
+@task
+def fetch_transcripts_from_bigquery(limit_n_calls):
     load_dotenv()
     gcp_project_id = os.getenv("GCP_PROJECT_ID")
-
     client = bigquery.Client(project=gcp_project_id)
 
-    query = transcript_query + f"LIMIT {limit_n_calls};"
+    if limit_n_calls == 0:
+        query = transcript_query + ";"
+    else:
+        query = transcript_query + f"LIMIT {limit_n_calls};"
+
     rows = client.query_and_wait(query)
 
-    return rows
+    return list(rows)
 
 
+@task
 def process_and_embed_transcripts(
     rows: List[Dict], chunk_size: int = 2000, overlap: int = 200
 ) -> Dict:
@@ -43,6 +50,7 @@ def process_and_embed_transcripts(
     for row in rows:
         call_id = row.get("gong_call_id_c")
         call_title = row.get("name")
+        print(f"💼 Processing call {call_title}-{call_id}")
 
         # Skip if call duration is less than 10 seconds
         if row.get("gong_call_duration_sec_c") < 10:
@@ -91,21 +99,38 @@ def process_and_embed_transcripts(
     }
 
 
-def upsert_to_tpuf(
-    namespace: str, doc_ids: List[str], doc_vectors: List[List[float]], attributes: Dict
+@task
+def batch_upsert(
+    namespace: str,
+    doc_ids: List[str],
+    doc_vectors: List[List[float]],
+    attributes: Dict,
+    batch_size: int = 50,
 ):
-    load_dotenv()  # TODO: Ask nate -- do i need this everywhere
-
+    """
+    Upsert documents in smaller batches.
+    """
+    load_dotenv()
     tpuf.api_key = os.getenv("TURBOPUFFER_API_KEY")
     tpuf.api_base_url = "https://gcp-us-central1.turbopuffer.com"
     ns = tpuf.Namespace(namespace)
 
-    ns.upsert(ids=doc_ids, vectors=doc_vectors, attributes=attributes)
+    for i in range(0, len(doc_ids), batch_size):
+        print(
+            f"🐡 Upserting batch {i // batch_size + 1} of {(len(doc_ids) // batch_size) + 1}"
+        )
+        batch_ids = doc_ids[i : i + batch_size]
+        batch_vectors = doc_vectors[i : i + batch_size]
+        # For attributes, slice each list so that every attribute list is the same length as the batch.
+        batch_attributes = {k: v[i : i + batch_size] for k, v in attributes.items()}
+        ns = tpuf.Namespace(namespace)
+        ns.upsert(ids=batch_ids, vectors=batch_vectors, attributes=batch_attributes)
 
 
+@flow(log_prints=True, persist_result=False)
 def refresh_gong_transcripts(
-    limit_n_calls: int = 100,
     namespace: str = "tay-test",
+    limit_n_calls: int = 50,
     chunk_size: int = 2000,
     overlap: int = 200,
 ):
@@ -114,8 +139,15 @@ def refresh_gong_transcripts(
     """
     rows = fetch_transcripts_from_bigquery(limit_n_calls)
     vector_and_attributes = process_and_embed_transcripts(rows)
-    upsert_to_tpuf(namespace, **vector_and_attributes)
+    batch_upsert(
+        namespace,
+        vector_and_attributes["doc_ids"],
+        vector_and_attributes["doc_vectors"],
+        vector_and_attributes["attributes"],
+    )
 
 
 if __name__ == "__main__":
-    refresh_gong_transcripts(2)
+    # refresh_gong_transcripts(namespace="tay-sales-calls", limit_n_calls=0)
+    refresh_gong_transcripts(namespace="tay-test", limit_n_calls=20)
+
