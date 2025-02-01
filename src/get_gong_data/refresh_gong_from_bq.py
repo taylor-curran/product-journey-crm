@@ -1,19 +1,12 @@
 # src/get_gong_data/refresh_gong_from_bq.py
-from google.cloud import bigquery
-from dotenv import load_dotenv
 import os
-from queries import transcript_query, attributes
-from helper import (
-    chunk_text,
-    embed_text,
-    clean_attribute_value,
-    clean_attributes_for_row,
-)
-from typing import List, Dict
-import json
-import uuid
-from openai import OpenAI
+from typing import Dict, List
+
 import turbopuffer as tpuf
+from dotenv import load_dotenv
+from google.cloud import bigquery
+from helper import clean_attributes_for_row, embed_text, process_combined_transcript
+from queries import attributes, transcript_query
 
 
 def fetch_transcripts_from_bigquery(limit):
@@ -40,59 +33,32 @@ def process_and_embed_transcripts(rows: List[Dict]) -> Dict:
         call_id = row.get("gong_call_id_c")
         call_title = row.get("name")
 
-        # Process transcript
+        # Process transcript using the new helper function
         combined_transcript = row.get("combined_transcript", "")
-        if not combined_transcript:
-            print(f"Skipping call {call_title} with empty combined_transcript.")
-            continue
+        entire_transcript_text = process_combined_transcript(
+            combined_transcript, call_title, call_id
+        )
 
-        try:
-            transcript_list = json.loads(combined_transcript)
-            entire_transcript_text = " ".join(
-                item.get("text", "") for item in transcript_list
-            )
-        except json.JSONDecodeError as e:
-            print(
-                f"Error parsing combined_transcript for call {call_title}-{call_id}: {e}"
-            )
-            continue
-
-        if not entire_transcript_text.strip() or len(entire_transcript_text) < 10:
-            print(
-                f"Skipping call {call_title}-{call_id} with empty transcript text after parsing."
-            )
-            continue
+        # Skip if call duration is less than 10 seconds
         if row.get("gong_call_duration_sec_c") < 10:
             print(
                 f"Skipping call {call_title}-{call_id} with call duration less than 10 seconds."
             )
             continue
 
-        # TODO: Chunk the text
-        # chunks = chunk_text(entire_text, chunk_size=2000)
-        # for idx, chunk in enumerate(chunks):
-        #     if not chunk.strip():
-        #         continue
-        #     doc_id = f"{call_title}-{call_id}-{idx}"
-        #     vector = embed_text(chunk)
-        #     if not vector:
-        #         continue
-        #     doc_ids.append(doc_id)
-        #     doc_vectors.append(vector)
-
+        # Embed the transcript
         vector = embed_text(entire_transcript_text)
         if not vector:
             print(f"Embedding failed for call {call_title}-{call_id}.")
             continue
 
-        # Create a unique document id.
-        doc_id = call_id
-        doc_ids.append(doc_id)
+        # Append the call_id and vector to the lists
+        doc_ids.append(call_id)
         doc_vectors.append(vector)
 
-        # Clean attributes for this row.
+        # Clean attributes for this row to meet tpuf attribute dtype requirements
         cleaned_attrs = clean_attributes_for_row(row, list(upsert_attributes.keys()))
-        # Append each cleaned value into the column-oriented attributes dict.
+        # And append attributes
         for attr_key, value in cleaned_attrs.items():
             upsert_attributes[attr_key].append(value)
 
@@ -106,7 +72,7 @@ def process_and_embed_transcripts(rows: List[Dict]) -> Dict:
 def upsert_to_tpuf(
     namespace: str, doc_ids: List[str], doc_vectors: List[List[float]], attributes: Dict
 ):
-    load_dotenv()
+    load_dotenv() # Ask nate -- do i need this everywhere
 
     tpuf.api_key = os.getenv("TURBOPUFFER_API_KEY")
     tpuf.api_base_url = "https://gcp-us-central1.turbopuffer.com"

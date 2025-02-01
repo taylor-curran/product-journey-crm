@@ -1,12 +1,11 @@
 # src/get_gong_data/helper.py
-import turbopuffer as tpuf
-import os
-import uuid
-from typing import List, Dict, Any
-from dotenv import load_dotenv
-from openai import OpenAI
 import datetime
 import json
+import os
+from typing import Any, Dict, List
+
+from dotenv import load_dotenv
+from openai import OpenAI
 
 
 def chunk_text(s: str, chunk_size: int = 2000) -> List[str]:
@@ -112,6 +111,35 @@ def clean_attributes_for_row(
     return cleaned
 
 
+def process_combined_transcript(
+    combined_transcript: str, call_title: str, call_id: str
+) -> str:
+    """
+    Processes the combined transcript and returns the entire transcript text.
+    Raises a ValueError if the transcript is invalid or empty.
+    """
+    if not combined_transcript:
+        print(f"Skipping call {call_title} with empty combined_transcript.")
+        return ""
+
+    try:
+        transcript_list = json.loads(combined_transcript)
+        entire_transcript_text = " ".join(
+            item.get("text", "") for item in transcript_list
+        )
+    except json.JSONDecodeError as e:
+        print(f"Error parsing combined_transcript for call {call_title}-{call_id}: {e}")
+        return ""
+
+    if not entire_transcript_text.strip() or len(entire_transcript_text) < 10:
+        print(
+            f"Skipping call {call_title}-{call_id} with empty transcript text after parsing."
+        )
+        return ""
+
+    return entire_transcript_text
+
+
 # test
 
 # def openai_or_rand_vector(text: str) -> list[float]:
@@ -141,4 +169,5 @@ def clean_attributes_for_row(
 #   filters=["And", [["name", "Eq", "foo"], ["public", "Eq", 1]]],
 #   include_attributes=["name"],
 #   include_vectors=False,
+# ))
 # ))
