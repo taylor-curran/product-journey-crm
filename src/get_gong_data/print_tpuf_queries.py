@@ -36,20 +36,20 @@ def query_namespace(
         print("  Attributes:")
         for attr, value in result.attributes.items():
             if attr == "transcript_text":
-                print('')
-                print('-----')
+                print("")
+                print("-----")
                 print(f"Transcript Text ({n_characters} characters):")
-                print('')
+                print("")
                 print(f"{value[:n_characters]}...")
 
-                print('') 
-                print('Last 400 characters:')
-                print('')
+                print("")
+                print("Last 400 characters:")
+                print("")
                 print(f"{value[-400:]}")
-                print('')
+                print("")
                 print(f"Chunk Length: {len(value)}")
-                print('-----')
-                print('')
+                print("-----")
+                print("")
             else:
                 print(f"    {attr}: {value}")
 
@@ -88,7 +88,12 @@ if __name__ == "__main__":
         "tay-test",
         "Find me a call where migration and upgrade were discussed.",
         top_k=1,
-        include_attributes=["gong_title_c", "gong_call_id_c", "chunk_index", "transcript_text"],
+        include_attributes=[
+            "gong_title_c",
+            "gong_call_id_c",
+            "chunk_index",
+            "transcript_text",
+        ],
         n_characters=2000,
     )
 

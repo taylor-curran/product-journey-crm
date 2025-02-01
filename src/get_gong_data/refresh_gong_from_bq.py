@@ -14,13 +14,13 @@ from helper import (
 from queries import attributes, transcript_query
 
 
-def fetch_transcripts_from_bigquery(limit):
+def fetch_transcripts_from_bigquery(limit_n_calls: int):
     load_dotenv()
     gcp_project_id = os.getenv("GCP_PROJECT_ID")
 
     client = bigquery.Client(project=gcp_project_id)
 
-    query = transcript_query + f"LIMIT {limit};"
+    query = transcript_query + f"LIMIT {limit_n_calls};"
     rows = client.query_and_wait(query)
 
     return rows
@@ -46,15 +46,21 @@ def process_and_embed_transcripts(
 
         # Skip if call duration is less than 10 seconds
         if row.get("gong_call_duration_sec_c") < 10:
-            print(f"Skipping call {call_title}-{call_id} with duration less than 10 sec.")
+            print(
+                f"Skipping call {call_title}-{call_id} with duration less than 10 sec."
+            )
             continue
 
         # Process transcript using the helper function
         combined_transcript = row.get("combined_transcript", "")
-        entire_transcript_text = process_combined_transcript(combined_transcript, call_title, call_id)
+        entire_transcript_text = process_combined_transcript(
+            combined_transcript, call_title, call_id
+        )
 
         # Chunk the transcript text.
-        chunks = chunk_text(entire_transcript_text, chunk_size=chunk_size, overlap=overlap)
+        chunks = chunk_text(
+            entire_transcript_text, chunk_size=chunk_size, overlap=overlap
+        )
 
         # Compute the cleaned attributes once per row (they’re the same for every chunk)
         cleaned_attrs = clean_attributes_for_row(row, list(attributes.keys()))
@@ -98,7 +104,7 @@ def upsert_to_tpuf(
 
 
 def refresh_gong_transcripts(
-    limit: int = 100,
+    limit_n_calls: int = 100,
     namespace: str = "tay-test",
     chunk_size: int = 2000,
     overlap: int = 200,
@@ -106,7 +112,7 @@ def refresh_gong_transcripts(
     """
     Get the transcript data from Gong
     """
-    rows = fetch_transcripts_from_bigquery(limit)
+    rows = fetch_transcripts_from_bigquery(limit_n_calls)
     vector_and_attributes = process_and_embed_transcripts(rows)
     upsert_to_tpuf(namespace, **vector_and_attributes)
 
