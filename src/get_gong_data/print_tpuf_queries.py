@@ -85,18 +85,25 @@ if __name__ == "__main__":
     # schema = print_namespace_schema("tay-test")
 
     results = query_namespace(
-        "tay-test",
-        "Find me a call where migration and upgrade were discussed.",
-        top_k=1,
+        "tay-sales-calls",
+        "Find me a call about soccer",
+        top_k=3,
         include_attributes=[
             "gong_title_c",
             "gong_call_id_c",
             "chunk_index",
+            "gong_participants_emails_c",
             "transcript_text",
         ],
         n_characters=2000,
     )
 
+
+# Interesting Queries
+
+"Find me a call about sports data."
+
+# ------------------------------------------------------------------------------------------------
 
 # Note: For Full-Text Search (BM25)
 # If you have configured an attribute (say, combined_transcript or another text field) in your schema with full‑text search enabled, you can use BM25. In this case you don’t need to compute an embedding for your query. Instead, you pass your query text to the BM25 ranker using the rank_by parameter:
