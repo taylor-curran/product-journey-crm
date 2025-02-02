@@ -174,3 +174,5 @@ cython_debug/
 src/get_gong_data/queries.py
 notes.txt
 notes/
+
+marvin/
