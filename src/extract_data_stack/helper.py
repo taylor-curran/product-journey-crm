@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 from dotenv import load_dotenv
 from openai import OpenAI
 
+
 def embed_text(text: str) -> List[float]:
     """
     Generates an embedding vector for the provided text using OpenAI's API.

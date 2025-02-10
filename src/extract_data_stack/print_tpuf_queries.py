@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 from dotenv import load_dotenv
 from openai import OpenAI
 
+
 def embed_text(text: str) -> List[float]:
     """
     Generates an embedding vector for the provided text using OpenAI's API.
@@ -36,7 +37,7 @@ def query_namespace(
     top_k: int = 3,
     include_attributes: list[str] = ["name", "gong_call_id_c"],
     n_characters: int = 500,
-    gong_primary_opportunity_c: str = "006Rm00000QuHC6IAN"
+    gong_primary_opportunity_c: str = "006Rm00000QuHC6IAN",
 ) -> list:
     # Convert query into a vector
     query_vector = embed_text(query_text)
@@ -48,17 +49,15 @@ def query_namespace(
     # Query the namespace using the vector
     ns = tpuf.Namespace(namespace)
 
-
     # Define a filter to restrict results to documents with the specified opportunity.
-    filters = ['gong_primary_opportunity_c', 'Eq', gong_primary_opportunity_c]
-    
-    
+    filters = ["gong_primary_opportunity_c", "Eq", gong_primary_opportunity_c]
+
     results = ns.query(
         vector=query_vector,
         distance_metric="cosine_distance",
         top_k=top_k,
         include_attributes=include_attributes,
-        filters=filters
+        filters=filters,
     )
 
     if n_characters > len(results[0].attributes["transcript_text"]):
@@ -128,8 +127,8 @@ if __name__ == "__main__":
             "gong_call_id_c",
             "chunk_index",
             "gong_participants_emails_c",
-            "transcript_text", 
-            "gong_primary_opportunity_c"
+            "transcript_text",
+            "gong_primary_opportunity_c",
         ],
         n_characters=2000,
     )
