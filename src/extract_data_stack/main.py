@@ -1,16 +1,46 @@
-import controlflow as cf
+from pydantic_ai import Agent, RunContext
 from pydantic import BaseModel, Field
 from enum import Enum
 from typing import List, Optional, Literal
-from tech_stack_enums import OrchestrationTool
-
 import turbopuffer as tpuf
 from helper import embed_text
 import os
 from typing import Annotated
 
 
-import marvin
+class OrchestrationTool(str, Enum):
+    DAGSTER = "Dagster"
+    HOME_GROWN_ADVANCED = "Home-Grown Advanced Orchestration Tool"
+    HOME_GROWN_BASIC = "Home-Grown Basic Orchestration Tool"
+    AIRFLOW_MWAA = "Airflow (MWAA)"
+    AIRFLOW_ASTRONOMER = "Airflow (Astronomer)"
+    AIRFLOW_AZURE = "Airflow (Azure Managed)"
+    AIRFLOW_GCP = "Airflow (GCP Managed)"
+    AIRFLOW_OSS = "Airflow (OSS)"
+    AIRFLOW_NOT_SPECIFIED = "Airflow (Not Specified)"
+    ACTIVEBATCH = "ActiveBatch"
+    TEMPORAL = "Temporal"
+    CONTROL_M = "Control-M (BMC)"
+    INFORMATICA = "Informatica PowerCenter"
+    ALTERYX = "Alteryx"
+    SQL_SERVER_JOBS = "SQL Server Jobs"
+    AWS_STEP_FUNCTIONS = "AWS Step Functions"
+    AWS_LAMBDA_FUNCTIONS = "AWS Lambda Functions"
+    AZURE_FUNCTIONS = "Azure Functions"
+    AZURE_DATA_FACTORY = "Azure Data Factory"
+    GCP_CLOUD_FUNCTIONS = "GCP Cloud Functions"
+    IBM_WORKLOAD_SCHEDULER = "IBM Workload Scheduler"
+    MATILLION = "Matillion"
+    AUTOSYS = "AutoSys"
+    TALEND = "Talend"
+    DATASTAGE = "DataStage (IBM)"
+    SSIS = "SQL Server Integration Services (SSIS)"
+    BOOMI = "Boomi"
+    SNAPLOGIC = "SnapLogic"
+    MULESOFT = "MuleSoft"
+    OTHER_LEGACY_SYSTEM = "Other Legacy System"
+    CAMUNDA = "Camunda"
+    OTHER = "Other"
 
 
 class TechStack(BaseModel):
@@ -23,23 +53,62 @@ class TechStack(BaseModel):
     )
 
 
-def query_transcript_vector_db_for_opportunity(
+class TechStackResult(BaseModel):
+    """Result model for tech stack extraction with confidence scores"""
+
+    tech_stack: TechStack
+    confidence_score: float = Field(
+        ge=0.0, le=1.0, description="Confidence score of the extraction"
+    )
+    source_snippets: List[str] = Field(
+        default_factory=list,
+        description="Relevant transcript snippets used for extraction",
+    )
+
+
+class OpportunityContext(BaseModel):
+    """Context for tech stack extraction"""
+
+    gong_primary_opportunity_c: str = Field(
+        description="The Gong primary opportunity ID"
+    )
+
+
+# Define the agent with proper typing and configuration
+tech_stack_agent = Agent(
+    model="openai:gpt-4",
+    deps_type=OpportunityContext,
+    result_type=TechStackResult,
+    system_prompt="""
+    You are a technical analyst specialized in understanding customer's data infrastructure.
+    Your task is to:
+    1. Extract information about the customer's data stack from call transcripts
+    2. Identify their previous/current orchestration tools and cloud providers
+    3. Provide confidence scores and relevant snippets to support your analysis
+    
+    Use the query_transcript_vector_db_for_opportunity tool to find relevant information.
+    Always explain your reasoning and provide evidence from the transcripts.
+    """,
+)
+
+
+@tech_stack_agent.tool
+async def query_transcript_vector_db_for_opportunity(
+    ctx: RunContext[OpportunityContext],
     query_text: str = "What is the customer's data stack?",
     top_k: int = 3,
-    gong_primary_opportunity_c: str = "006Rm00000QuHC6IAN",
-) -> list:
+) -> List[dict]:
+    """Query the vector database for relevant transcript snippets"""
     query_vector = embed_text(query_text)
     namespace = "tay-sales-calls"
     ns = tpuf.Namespace(namespace)
 
-    # Define a filter to restrict results to documents with the specified opportunity.
     filters = [
         "gong_primary_opportunity_c",
         "Eq",
-        gong_primary_opportunity_c,
-    ]  ## HERE IS FILTER
+        ctx.deps.gong_primary_opportunity_c,
+    ]
 
-    # Execute the query with the vector, filter, and other parameters.
     results = ns.query(
         vector=query_vector,
         distance_metric="cosine_distance",
@@ -50,28 +119,35 @@ def query_transcript_vector_db_for_opportunity(
     return results
 
 
-sales_engineer = marvin.Agent(
-    name="Sales Engineer",
-    description="An AI agent specialized in extracting technical information about the customer from sales calls",
-    instructions="Extract information about the customer's data stack from the transcript",
-    tools=[query_transcript_vector_db_for_opportunity],
-    model="openai:gpt-4",
-)
+def extract_data_stack_task(opp_id: str) -> TechStackResult:
+    """
+    Extract information about the data stack from call transcripts
+    filtered by the provided opportunity ID.
 
+    Args:
+        opp_id: The Gong primary opportunity ID
 
-def parameterize_task(opp_id: str):
-    task = marvin.Task(
-        instructions="Extract information about the data stack from call transcripts that have been filtered by the provided opportunity ID.",  ## HERE I WANT TO PARAMETERIZE THE OPPORTUNITY ID
-        result_type=TechStack,
-        agents=[sales_engineer],
-        context={"gong_primary_opportunity_c": opp_id},
+    Returns:
+        TechStackResult containing the extracted tech stack information,
+        confidence score, and supporting evidence
+    """
+    context = OpportunityContext(gong_primary_opportunity_c=opp_id)
+    result = tech_stack_agent.run_sync(
+        "Analyze the customer's data stack and identify their orchestration tools and cloud providers.",
+        deps=context,
     )
+    return result.data
 
-    return task
 
+tech_stack = extract_data_stack_task("006Rm00000OG8LZIA1")
 
-parameterized_task = parameterize_task("006Rm00000OG8LZIA1")
+print(f"""
+Tech Stack:
+    Previous Solution: {tech_stack.tech_stack.previous_solution}
+    Cloud Provider: {tech_stack.tech_stack.cloud_provider}
 
-result = parameterized_task.run()
+Confidence Score: {tech_stack.confidence_score:.2f}
 
-print(result)
+Source Snippets:
+{chr(10).join(f'    • "{snippet}"' for snippet in tech_stack.source_snippets)}
+""")
