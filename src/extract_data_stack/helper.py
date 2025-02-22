@@ -46,7 +46,13 @@ def consolidate_and_print_metadata(results):
     ]
 
     # Define keys for aggregation.
-    list_keys = ["name", "gong_call_id_c", "gong_title_c", "gong_call_brief_c", "gong_call_start_c"]
+    list_keys = [
+        "name",
+        "gong_call_id_c",
+        "gong_title_c",
+        "gong_call_brief_c",
+        "gong_call_start_c",
+    ]
     unique_keys = ["gong_primary_opportunity_c"]
     email_key = "gong_participants_emails_c"
 
