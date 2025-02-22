@@ -139,12 +139,37 @@ async def query_transcript_vector_db_for_opportunity(
         for result in results
     ]
 
+    # Define keys for aggregation.
+    list_keys = ["name", "gong_call_id_c", "gong_title_c", "gong_call_brief_c", "gong_call_start_c"]
+    unique_keys = ["gong_primary_opportunity_c", "gong_participants_emails_c"]
+
+    # Initialize consolidated structure.
+    consolidated = {key: [] for key in list_keys}
+    for key in unique_keys:
+        consolidated[key] = set()
+
+    # Accumulate values from all metadata entries.
     for metadata in transcript_metadata:
-        print("\nResult Metadata:")
-        for attr, value in metadata.items():
-            print(f"{attr}:")
-            print(f"{value}")
-            print()
+        for key in list_keys:
+            if key in metadata:
+                consolidated[key].append(metadata[key])
+        for key in unique_keys:
+            if key in metadata:
+                consolidated[key].add(metadata[key])
+
+    # Print consolidated data.
+    print("\nConsolidated Results:")
+    for key in list_keys:
+        print(f"{key}:")
+        for value in consolidated[key]:
+            print(f"- {value}")
+        print()
+
+    for key in unique_keys:
+        print(f"{key}:")
+        for value in consolidated[key]:
+            print(f"- {value}")
+        print()
 
     return results
 
