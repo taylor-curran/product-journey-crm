@@ -60,9 +60,13 @@ class TechStackResult(BaseModel):
     confidence_score: float = Field(
         ge=0.0, le=1.0, description="Confidence score of the extraction"
     )
-    source_snippets: List[str] = Field(
-        default_factory=list,
-        description="Relevant transcript snippets used for extraction",
+    previous_solution_snippet: Optional[str] = Field(
+        None,
+        description="Relevant transcript snippet for previous solution",
+    )
+    cloud_provider_snippet: Optional[str] = Field(
+        None,
+        description="Relevant transcript snippet for cloud provider",
     )
 
 
@@ -174,7 +178,14 @@ Tech Stack:
     Cloud Provider: {tech_stack.tech_stack.cloud_provider}
 
 Confidence Score: {tech_stack.confidence_score:.2f}
+___ ___ ___ ___
 
-Source Snippets:
-{chr(10).join(f'    • "{snippet}"' for snippet in tech_stack.source_snippets)}
+Previous Solution Snippet:
+• {tech_stack.previous_solution_snippet}
+___ ___ ___
+
+Cloud Provider Snippet:
+• {tech_stack.cloud_provider_snippet}
+___ ___ ___
+
 """)
