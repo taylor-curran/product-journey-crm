@@ -126,7 +126,7 @@ async def query_transcript_vector_db_for_opportunity(
             "gong_primary_opportunity_c",
             "gong_title_c",
             "gong_call_brief_c",
-            "gong_opp_close_date_time_of_call_c",
+            "gong_call_start_c",
         ],
     )
 
