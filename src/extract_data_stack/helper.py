@@ -34,6 +34,7 @@ def embed_text(text: str) -> List[float]:
 def consolidate_and_print_metadata(results):
     """
     Consolidates metadata from results and prints them in a formatted manner.
+    Deduplicates individual email addresses from email lists.
     """
     transcript_metadata = [
         {
@@ -46,12 +47,14 @@ def consolidate_and_print_metadata(results):
 
     # Define keys for aggregation.
     list_keys = ["name", "gong_call_id_c", "gong_title_c", "gong_call_brief_c", "gong_call_start_c"]
-    unique_keys = ["gong_primary_opportunity_c", "gong_participants_emails_c"]
+    unique_keys = ["gong_primary_opportunity_c"]
+    email_key = "gong_participants_emails_c"
 
     # Initialize consolidated structure.
     consolidated = {key: [] for key in list_keys}
     for key in unique_keys:
         consolidated[key] = set()
+    consolidated[email_key] = set()
 
     # Accumulate values from all metadata entries.
     for metadata in transcript_metadata:
@@ -61,6 +64,9 @@ def consolidate_and_print_metadata(results):
         for key in unique_keys:
             if key in metadata:
                 consolidated[key].add(metadata[key])
+        if email_key in metadata:
+            emails = metadata[email_key].split(", ")
+            consolidated[email_key].update(emails)
 
     # Print consolidated data.
     print("\nConsolidated Results:")
@@ -75,6 +81,11 @@ def consolidate_and_print_metadata(results):
         for value in consolidated[key]:
             print(f"- {value}")
         print()
+
+    print(f"{email_key}:")
+    for email in consolidated[email_key]:
+        print(f"- {email}")
+    print()
 
 
 # TODO: Ask nate how do i avoid needing to make a copy of this file in every directory?
