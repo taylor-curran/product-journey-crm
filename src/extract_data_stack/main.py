@@ -76,7 +76,7 @@ class OpportunityContext(BaseModel):
 
 # Define the agent with proper typing and configuration
 tech_stack_agent = Agent(
-    model="openai:gpt-4",
+    model="openai:gpt-4o",
     deps_type=OpportunityContext,
     result_type=TechStackResult,
     system_prompt="""
@@ -114,7 +114,34 @@ async def query_transcript_vector_db_for_opportunity(
         distance_metric="cosine_distance",
         top_k=top_k,
         filters=filters,
+        include_attributes=[
+            "transcript_text",
+            "name",
+            "gong_call_id_c",
+            "gong_participants_emails_c",
+            "gong_primary_opportunity_c",
+            "gong_title_c",
+            "gong_call_brief_c",
+            "gong_opp_close_date_time_of_call_c",
+        ],
     )
+    # transcript_text is what the agent needs to process, so we extract it here
+    transcript_texts = [result.attributes["transcript_text"] for result in results]
+    # but other attributes are important for interpretability, verfication, and evaluation of the agent
+
+    # the transcript attribute is too long, i want to print all attributes except transcript_text
+    # Print all attributes except transcript_text for each result
+    transcript_metadata = [
+        result.attributes.pop("transcript_text", None) for result in results
+    ]
+
+    for result in results:
+        print("\nResult Metadata:")
+        for attr, value in result.attributes.items():
+            if attr != "transcript_text":
+                print(f"{attr}:")
+                print(f"{value}")
+                print()
 
     return results
 
