@@ -12,6 +12,8 @@ class CloudProvider(str, Enum):
 
 
 class OrchestrationTool(str, Enum):
+    PREFECT_OSS = "Prefect OSS"
+    PREFECT_FREE_PERSONAL_CLOUD_TIER = "Prefect Free Personal Cloud Tier"
     DAGSTER = "Dagster"
     HOME_GROWN_ADVANCED = "Home-Grown Advanced Orchestration Tool"
     HOME_GROWN_BASIC = "Home-Grown Basic Orchestration Tool"

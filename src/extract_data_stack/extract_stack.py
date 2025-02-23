@@ -1,5 +1,3 @@
-# src/extract_data_stack/main.py
-
 from pydantic_ai import Agent, RunContext
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -105,6 +103,11 @@ async def query_transcript_vector_db_for_transcripts(
 
     consolidate_and_print_metadata(results)
 
+    if not results:
+        print(
+            f"No transcript snippets returned for opportunity id {ctx.deps.gong_primary_opportunity_c}"
+        )
+
     return results
 
 
@@ -127,7 +130,7 @@ def extract_data_stack(opp_id: str) -> TechStackResult:
         deps=context,
     )
     print(f"""
-    Tech Stack:
+    Tech Stack for {opp_id}:
         Primary Previous Solution: {result.data.tech_stack.primary_previous_solution}
         Secondary Previous Solutions: {result.data.tech_stack.secondary_previous_solutions}
         Cloud Provider: {result.data.tech_stack.cloud_provider}
@@ -149,4 +152,13 @@ def extract_data_stack(opp_id: str) -> TechStackResult:
 
 
 if __name__ == "__main__":
-    tech_stack = extract_data_stack("006Rm00000OG8LZIA1")
+    opp_ids = [
+        '006Rm00000QuHC6IAN',
+        '006Rm00000R5yiLIAR',
+        '006Rm00000OemRXIAZ',
+        '006Rm00000OG8LZIA1'
+    ]
+    tech_stacks = []
+    for opp_id in opp_ids:
+        tech_stack = extract_data_stack(opp_id)
+        tech_stacks.append(tech_stack)

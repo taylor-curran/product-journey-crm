@@ -115,23 +115,60 @@ def print_namespace_schema(namespace: str = "tay-test"):
     return schema
 
 
+def get_unique_gong_primary_opportunities(
+    namespace: str = "tay-sales-calls",
+    top_k: int = 1000,  # adjust based on your dataset size
+) -> list:
+    """
+    Query the vectorstore for documents in the specified namespace,
+    and return a list of unique 'gong_primary_opportunity_c' values.
+    """
+    load_dotenv()
+
+    # Configure the Turbopuffer API
+    tpuf.api_key = os.getenv("TURBOPUFFER_API_KEY")
+    tpuf.api_base_url = "https://gcp-us-central1.turbopuffer.com"
+
+    # Instantiate the namespace
+    ns = tpuf.Namespace(namespace)
+
+    # Query the namespace.
+    # Here we don't provide a vector or rank_by, so the API should return
+    # documents without reordering by relevance.
+    results = ns.query(top_k=top_k, include_attributes=["gong_primary_opportunity_c"])
+
+    # Use a set to collect unique values
+    unique_opportunities = set()
+    for result in results:
+        opportunity = result.attributes.get("gong_primary_opportunity_c")
+        if opportunity:
+            unique_opportunities.add(opportunity)
+
+    return list(unique_opportunities)
+
+
 if __name__ == "__main__":
     # schema = print_namespace_schema("tay-test")
 
-    results = query_namespace(
-        "tay-sales-calls",
-        "Find sections that talk about the cloud provider",
-        top_k=3,
-        include_attributes=[
-            "gong_title_c",
-            "gong_call_id_c",
-            "chunk_index",
-            "gong_participants_emails_c",
-            "transcript_text",
-            "gong_primary_opportunity_c",
-        ],
-        n_characters=2000,
-    )
+    # results = query_namespace(
+    #     "tay-sales-calls",
+    #     "Find sections that talk about the cloud provider",
+    #     top_k=3,
+    #     include_attributes=[
+    #         "gong_title_c",
+    #         "gong_call_id_c",
+    #         "chunk_index",
+    #         "gong_participants_emails_c",
+    #         "transcript_text",
+    #         "gong_primary_opportunity_c",
+    #     ],
+    #     n_characters=2000,
+    # )
+
+    unique_ops = get_unique_gong_primary_opportunities()
+    print("Unique gong_primary_opportunity_c values:")
+    for op in unique_ops:
+        print(op)
 
 
 # Interesting Queries
