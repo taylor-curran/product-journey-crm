@@ -86,19 +86,8 @@ async def query_transcript_vector_db_for_transcripts(
         distance_metric="cosine_distance",
         top_k=top_k,
         filters=filters,
-        include_attributes=[
-            "transcript_text",
-            "name",
-            "gong_call_id_c",
-            "gong_participants_emails_c",
-            "gong_primary_opportunity_c",
-            "gong_title_c",
-            "gong_call_brief_c",
-            "gong_call_start_c",
-        ],
+        include_attributes=[],
     )
-
-    consolidate_and_print_metadata(results)
 
     return results
 
