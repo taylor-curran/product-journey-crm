@@ -92,7 +92,7 @@ async def query_transcript_vector_db_for_transcripts(
     return results
 
 
-def extract_data_stack(opp_id: str) -> TechStackResult:
+def extract_data_stack_no_data(opp_id: str) -> TechStackResult:
     """
     Extract information about the data stack from call transcripts
     filtered by the provided opportunity ID.
@@ -131,4 +131,4 @@ def extract_data_stack(opp_id: str) -> TechStackResult:
 
 
 if __name__ == "__main__":
-    tech_stack = extract_data_stack("006Rm00000OG8LZIA1")
+    tech_stack = extract_data_stack_no_data("006Rm00000OG8LZIA1")

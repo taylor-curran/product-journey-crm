@@ -3,6 +3,14 @@ from enum import Enum
 from typing import List, Optional, Literal
 
 
+class CloudProvider(str, Enum):
+    AWS = "AWS"
+    AZURE = "Azure"
+    GCP = "GCP"
+    OCI = "OCI"
+    ON_PREM = "On-Prem"
+
+
 class OrchestrationTool(str, Enum):
     DAGSTER = "Dagster"
     HOME_GROWN_ADVANCED = "Home-Grown Advanced Orchestration Tool"

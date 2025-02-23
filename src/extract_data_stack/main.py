@@ -8,16 +8,20 @@ import turbopuffer as tpuf
 from helper import embed_text, consolidate_and_print_metadata
 import os
 from typing import Annotated
-from tech_stack_enums import OrchestrationTool
+from tech_stack_enums import OrchestrationTool, CloudProvider
 
 
 class TechStack(BaseModel):
-    previous_solution: Optional[OrchestrationTool] = Field(
-        None,
-        description="The account's previous, current, or legacy data orchestration solution",
+    primary_previous_solution: OrchestrationTool = Field(
+        None, description="The account's main orchestration solution they rely on."
     )
-    cloud_provider: str = Field(
-        description="The account's cloud provider; often aws, azure, gcp, oci, on-prem, etc."
+    secondary_previous_solutions: Optional[List[OrchestrationTool]] = Field(
+        None,
+        description="Additional or legacy orchestration solutions mentioned in the transcripts.",
+    )
+    cloud_provider: CloudProvider = Field(
+        None,
+        description="The account's cloud provider; e.g., aws, azure, gcp, oci, on-prem, etc.",
     )
 
 
@@ -28,7 +32,7 @@ class TechStackResult(BaseModel):
     confidence_score: float = Field(
         ge=0.0, le=1.0, description="Confidence score of the extraction"
     )
-    previous_solution_snippet: Optional[str] = Field(
+    primary_previous_solution_snippet: Optional[str] = Field(
         None,
         description="Relevant transcript snippet for previous solution",
     )
@@ -122,14 +126,15 @@ def extract_data_stack(opp_id: str) -> TechStackResult:
     )
     print(f"""
     Tech Stack:
-        Previous Solution: {result.data.tech_stack.previous_solution}
+        Primary Previous Solution: {result.data.tech_stack.primary_previous_solution}
+        Secondary Previous Solutions: {result.data.tech_stack.secondary_previous_solutions}
         Cloud Provider: {result.data.tech_stack.cloud_provider}
 
     Confidence Score: {result.data.confidence_score:.2f}
     ___ ___ ___ ___
 
-    Previous Solution Snippet:
-    • {result.data.previous_solution_snippet}
+    Primary Previous Solution Snippet:
+    • {result.data.primary_previous_solution_snippet}
     ___ ___ ___
 
     Cloud Provider Snippet:
