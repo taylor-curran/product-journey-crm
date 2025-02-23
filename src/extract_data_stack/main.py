@@ -102,6 +102,7 @@ async def query_transcript_vector_db_for_transcripts(
 
     return results
 
+
 def extract_data_stack(opp_id: str) -> TechStackResult:
     """
     Extract information about the data stack from call transcripts
