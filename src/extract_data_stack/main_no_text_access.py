@@ -56,14 +56,14 @@ tech_stack_agent = Agent(
     2. Identify their previous/current orchestration tools and cloud providers
     3. Provide confidence scores and relevant snippets to support your analysis
     
-    Use the query_transcript_vector_db_for_transcripts tool to find relevant information.
+    Use the query_transcript_vector_db_for_opportunity tool to find relevant information.
     Always explain your reasoning and provide evidence from the transcripts.
     """,
 )
 
 
 @tech_stack_agent.tool
-async def query_transcript_vector_db_for_transcripts(
+async def query_transcript_vector_db_for_opportunity(
     ctx: RunContext[OpportunityContext],
     query_text: str = "What is the customer's data stack?",
     top_k: int = 3,
