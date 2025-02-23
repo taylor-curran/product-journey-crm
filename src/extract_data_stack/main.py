@@ -1,4 +1,4 @@
-# main.py
+# src/extract_data_stack/main.py
 
 from pydantic_ai import Agent, RunContext
 from pydantic import BaseModel, Field
@@ -62,6 +62,7 @@ tech_stack_agent = Agent(
     Always explain your reasoning and provide evidence from the transcripts.
     """,
 )
+
 
 @tech_stack_agent.tool
 async def query_transcript_vector_db_for_transcripts(
@@ -139,4 +140,5 @@ def extract_data_stack(opp_id: str) -> TechStackResult:
     return result.data
 
 
-tech_stack = extract_data_stack("006Rm00000OG8LZIA1")
+if __name__ == "__main__":
+    tech_stack = extract_data_stack("006Rm00000OG8LZIA1")

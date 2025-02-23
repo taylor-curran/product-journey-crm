@@ -1,3 +1,5 @@
+# src/extract_data_stack/main_no_text_access.py
+
 from pydantic_ai import Agent, RunContext
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -84,15 +86,23 @@ async def query_transcript_vector_db_for_transcripts(
         distance_metric="cosine_distance",
         top_k=top_k,
         filters=filters,
-        include_attributes=[],
+        include_attributes=[
+            "transcript_text",
+            "name",
+            "gong_call_id_c",
+            "gong_participants_emails_c",
+            "gong_primary_opportunity_c",
+            "gong_title_c",
+            "gong_call_brief_c",
+            "gong_call_start_c",
+        ],
     )
 
-
+    consolidate_and_print_metadata(results)
 
     return results
 
-
-def extract_data_stack_task(opp_id: str) -> TechStackResult:
+def extract_data_stack(opp_id: str) -> TechStackResult:
     """
     Extract information about the data stack from call transcripts
     filtered by the provided opportunity ID.
@@ -109,25 +119,26 @@ def extract_data_stack_task(opp_id: str) -> TechStackResult:
         "Analyze the customer's data stack and identify their orchestration tools and cloud providers.",
         deps=context,
     )
+    print(f"""
+    Tech Stack:
+        Previous Solution: {result.data.tech_stack.previous_solution}
+        Cloud Provider: {result.data.tech_stack.cloud_provider}
+
+    Confidence Score: {result.data.confidence_score:.2f}
+    ___ ___ ___ ___
+
+    Previous Solution Snippet:
+    • {result.data.previous_solution_snippet}
+    ___ ___ ___
+
+    Cloud Provider Snippet:
+    • {result.data.cloud_provider_snippet}
+    ___ ___ ___
+
+    """)
+
     return result.data
 
 
-tech_stack = extract_data_stack_task("006Rm00000OG8LZIA1")
-
-print(f"""
-Tech Stack:
-    Previous Solution: {tech_stack.tech_stack.previous_solution}
-    Cloud Provider: {tech_stack.tech_stack.cloud_provider}
-
-Confidence Score: {tech_stack.confidence_score:.2f}
-___ ___ ___ ___
-
-Previous Solution Snippet:
-• {tech_stack.previous_solution_snippet}
-___ ___ ___
-
-Cloud Provider Snippet:
-• {tech_stack.cloud_provider_snippet}
-___ ___ ___
-
-""")
+if __name__ == "__main__":
+    tech_stack = extract_data_stack("006Rm00000OG8LZIA1")
