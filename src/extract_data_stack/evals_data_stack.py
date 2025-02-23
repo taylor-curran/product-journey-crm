@@ -1,6 +1,6 @@
 # src/extract_data_stack/evals_data_stack.py
 
-from main_no_text_access import extract_data_stack_no_data
+from extract_stack_no_text_access import extract_data_stack_no_data
 
 
 def eval_no_text():

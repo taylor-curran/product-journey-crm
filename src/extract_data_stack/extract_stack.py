@@ -9,6 +9,7 @@ from helper import embed_text, consolidate_and_print_metadata
 import os
 from typing import Annotated
 from tech_stack_enums import OrchestrationTool, CloudProvider
+from prefect import flow
 
 
 class TechStack(BaseModel):
@@ -107,6 +108,7 @@ async def query_transcript_vector_db_for_transcripts(
     return results
 
 
+@flow(log_prints=True)
 def extract_data_stack(opp_id: str) -> TechStackResult:
     """
     Extract information about the data stack from call transcripts
